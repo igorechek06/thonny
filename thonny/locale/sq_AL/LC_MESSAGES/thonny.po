@@ -1698,10 +1698,6 @@ msgstr "Komanda nuk disponohet"
 msgid "This command is not available if Thonny is run via Flatpak"
 msgstr "Kjo komandë nuk është e disponueshme nëse Thonny ekzekutohet përmes Flatpak"
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr "Mbështesni Ukrainën"
-
 #: thonny/plugins/backend_config_page.py:90
 msgid "Which kind of interpreter should Thonny use for running your code?"
 msgstr "Cilin lloj përkthyesi duhet të përdorë Thonny për ekzekutimin e kodit tuaj?"

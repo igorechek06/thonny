@@ -1,3 +1,4 @@
+import importlib.util
 import os.path
 import shutil
 import subprocess
@@ -85,11 +86,8 @@ class BasedpyrightProxy(LanguageServerProxy):
         return False
 
     def _create_server_process(self) -> subprocess.Popen[bytes]:
-        server_path = shutil.which("basedpyright-langserver")
-        if server_path is None:
-            raise UserError("Can't find basedpyright-langserver")
-
-        logger.info("basedpyright-langserver path: %r", server_path)
+        command = self._get_server_command()
+        logger.info("basedpyright-langserver command: %r", command)
 
         if os.name == "nt":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
@@ -109,8 +107,8 @@ class BasedpyrightProxy(LanguageServerProxy):
             logger.debug("Basedpyright env: %s=%r", key, env.get(key))
 
         return subprocess.Popen(
-            [server_path, "--stdio"],
-            executable=server_path,
+            command,
+            executable=command[0],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -119,6 +117,35 @@ class BasedpyrightProxy(LanguageServerProxy):
             universal_newlines=False,
             env=env,
         )
+
+    def _get_server_command(self) -> typing.List[str]:
+        # Prefer basedpyright installed together with Thonny, as console scripts are not
+        # available in bundles. Node is run directly, so that killing the server process
+        # doesn't leave an orphaned node process behind.
+        basedpyright_dir = self._find_package_dir("basedpyright")
+        nodejs_dir = self._find_package_dir("nodejs_wheel")
+        if basedpyright_dir is not None and nodejs_dir is not None:
+            script_path = os.path.join(basedpyright_dir, "langserver.index.js")
+            if os.name == "nt":
+                node_path = os.path.join(nodejs_dir, "node.exe")
+            else:
+                node_path = os.path.join(nodejs_dir, "bin", "node")
+
+            if os.path.isfile(script_path) and os.path.isfile(node_path):
+                return [node_path, script_path, "--stdio"]
+
+        server_path = shutil.which("basedpyright-langserver")
+        if server_path is None:
+            raise UserError("Can't find basedpyright-langserver")
+
+        return [server_path, "--stdio"]
+
+    def _find_package_dir(self, name: str) -> typing.Optional[str]:
+        spec = importlib.util.find_spec(name)
+        if spec is None or spec.origin is None:
+            return None
+
+        return os.path.dirname(spec.origin)
 
     def get_supported_language_ids(self) -> typing.Set[str]:
         return {"python"}

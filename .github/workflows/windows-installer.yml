@@ -1,0 +1,157 @@
+name: Windows installer
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_BRANCH: master
+  MINNY_REPO: aivarannamaa/minny
+  MINNY_REF: main
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout Thonny
+        uses: actions/checkout@v7
+        with:
+          path: thonny
+          fetch-depth: 0
+
+      - name: Check that the tag is on ${{ env.RELEASE_BRANCH }}
+        if: github.ref_type == 'tag'
+        working-directory: thonny
+        run: |
+          git merge-base --is-ancestor HEAD "origin/$env:RELEASE_BRANCH"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "::error::Tag $env:GITHUB_REF_NAME is not on branch $env:RELEASE_BRANCH"
+            exit 1
+          }
+
+      - name: Checkout minny
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.MINNY_REPO }}
+          ref: ${{ env.MINNY_REF }}
+          path: minny
+
+      - name: Set up Python to bundle
+        id: python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          architecture: x64
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Build wheels
+        run: |
+          uv build --wheel --out-dir dist thonny
+          uv build --wheel --out-dir dist minny
+          $wheels = (Get-ChildItem dist\*.whl).FullName -join ' '
+          Write-Output "Wheels: $wheels"
+          "THONNY_PACKAGES=$wheels" >> $env:GITHUB_ENV
+          "PYTHON_DIR=$(Split-Path -Parent '${{ steps.python.outputs.python-path }}')" >> $env:GITHUB_ENV
+
+      - name: Install Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --version=6.7.1 -y --no-progress
+          }
+
+      - name: Build installer
+        working-directory: thonny/packaging/windows
+        shell: cmd
+        env:
+          ISCC_ARGS: /dNoSign
+        run: call create_installer.bat
+
+      - name: Check build
+        working-directory: thonny/packaging/windows
+        run: |
+          build\python.exe -c "import tkinter, thonny, minny.target; tkinter.Tcl(); print(thonny.get_version())"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          $version = (Get-Content build\Lib\site-packages\thonny\VERSION -Raw).Trim()
+          foreach ($file in "dist\thonny-$version-x64.exe", "dist\thonny-$version-windows-portable-x64.zip") {
+            if (-not (Test-Path $file)) {
+              Write-Output "::error::$file was not created"
+              exit 1
+            }
+          }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            Write-Output "::warning::Tag $env:GITHUB_REF_NAME does not match Thonny version $version"
+          }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Check language server
+        working-directory: thonny/packaging/windows
+        timeout-minutes: 5
+        run: |
+          $script = @'
+          import json, os, subprocess
+          from thonny.plugins.basedpyright import BasedpyrightProxy
+
+          command = BasedpyrightProxy._get_server_command(BasedpyrightProxy.__new__(BasedpyrightProxy))
+          print(command)
+          assert "nodejs_wheel" in command[0], "bundled basedpyright is not used"
+
+          proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+          body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                             "params": {"processId": os.getpid(), "rootUri": None, "capabilities": {}}}).encode()
+          proc.stdin.write(b"Content-Length: %d\r\n\r\n" % len(body) + body)
+          proc.stdin.flush()
+          while True:
+              headers = {}
+              while line := proc.stdout.readline().strip():
+                  key, value = line.decode().split(":", 1)
+                  headers[key.lower()] = value.strip()
+              if not headers:
+                  raise SystemExit("Language server closed the connection")
+              msg = json.loads(proc.stdout.read(int(headers["content-length"])))
+              if msg.get("id") == 1:
+                  break
+          proc.kill()
+          print("Language server:", msg["result"]["serverInfo"])
+          '@
+          Set-Content -Path "$env:RUNNER_TEMP\check_lsp.py" -Value $script
+          build\python.exe "$env:RUNNER_TEMP\check_lsp.py"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: thonny-${{ env.VERSION }}-windows-x64
+          path: thonny/packaging/windows/dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.ref_type == 'tag'
+        working-directory: thonny/packaging/windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = (Get-ChildItem dist\*).FullName
+          gh release view $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:GITHUB_REF_NAME @files --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            $ghArgs = @($env:GITHUB_REF_NAME) + $files + @(
+              '--repo', $env:GITHUB_REPOSITORY,
+              '--title', "Thonny $env:VERSION",
+              '--generate-notes'
+            )
+            if ($env:VERSION -match '[a-z]') { $ghArgs += '--prerelease' }
+            gh release create @ghArgs
+          }

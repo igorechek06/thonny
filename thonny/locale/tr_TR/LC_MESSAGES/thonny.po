@@ -1697,10 +1697,6 @@ msgstr "Komut mevcut değil"
 msgid "This command is not available if Thonny is run via Flatpak"
 msgstr "Thonny Flatpak üzerinden çalıştırılıyorsa, bu komut kullanılamaz."
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr "Ukrayna'yı destekle"
-
 #: thonny/plugins/backend_config_page.py:90
 msgid "Which kind of interpreter should Thonny use for running your code?"
 msgstr "Thonny, kodunuzu çalıştırmak için hangi yorumlayıcıyı kullanacak?"

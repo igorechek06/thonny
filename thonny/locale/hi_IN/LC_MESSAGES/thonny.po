@@ -1692,10 +1692,6 @@ msgstr "कमांड नॉट अवेलेबल"
 msgid "This command is not available if Thonny is run via Flatpak"
 msgstr "दिस कमांड इस नॉट अवेलेबल इफ थोनी इस रन वाया फ्लैटपैक"
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr "सपोर्ट यूक्रेन"
-
 #: thonny/plugins/backend_config_page.py:90
 msgid "Which kind of interpreter should Thonny use for running your code?"
 msgstr "थॉनी को आपके कोड को चलाने के लिए किस प्रकार के इंटरप्रेटर का उपयोग करना चाहिए?"

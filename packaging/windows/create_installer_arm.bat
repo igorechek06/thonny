@@ -63,6 +63,11 @@ rmdir %BUILDDIR%\tcl\tcl8.6\tzdata /S /Q>NUL
 rmdir %BUILDDIR%\lib\site-packages\pylint\test /S /Q>NUL
 rmdir %BUILDDIR%\lib\site-packages\mypy\test /S /Q>NUL
 
+@rem Not needed for running the language server
+rmdir %BUILDDIR%\lib\site-packages\nodejs_wheel\lib /S /Q>NUL
+del %BUILDDIR%\lib\site-packages\basedpyright\dist\*.js.map>NUL
+del %BUILDDIR%\lib\site-packages\basedpyright\dist\pyright.js>NUL
+
 
 @echo ............... ADDING LICENSES ...................................
 copy ..\..\LICENSE.txt %BUILDDIR% /Y>NUL

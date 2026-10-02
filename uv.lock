@@ -1011,7 +1011,7 @@ wheels = [
 
 [[package]]
 name = "thonny"
-version = "6.0.0.dev1"
+version = "5.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "asttokens" },

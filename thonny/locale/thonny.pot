@@ -742,10 +742,6 @@ msgstr ""
 msgid "Quit"
 msgstr ""
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr ""
-
 #: thonny/workbench.py:709
 msgid "Support"
 msgstr ""

@@ -1702,10 +1702,6 @@ msgstr "Käsk pole saadaval"
 msgid "This command is not available if Thonny is run via Flatpak"
 msgstr "See käsk pole saadaval, kui Thonny jooksutatakse Flatpak-i kaudu"
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr "Toeta Ukrainat"
-
 #: thonny/plugins/backend_config_page.py:90
 msgid "Which kind of interpreter should Thonny use for running your code?"
 msgstr "Millist tüüpi interpretaatoriga peaks Thonny Su koodi jooksutama?"

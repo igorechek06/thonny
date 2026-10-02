@@ -1698,10 +1698,6 @@ msgstr "Skipun ekki í boði"
 msgid "This command is not available if Thonny is run via Flatpak"
 msgstr "Þessi skipun er ekki í boði ef Thonny er keyrt í gegnum Flatpak"
 
-#: thonny/workbench.py:706 thonny/workbench.py:805
-msgid "Support Ukraine"
-msgstr "Styðja Úkraínu"
-
 #: thonny/plugins/backend_config_page.py:90
 msgid "Which kind of interpreter should Thonny use for running your code?"
 msgstr "Hvers konar túlk ætti Thonny að nota til að keyra kóðann þinn?"
